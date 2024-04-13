@@ -99,6 +99,8 @@ type DatabaseConfig struct {
 type TLSConfig struct {
 	CertPath string
 	KeyPath  string
+	GRPCCertPath string
+	GRPCKeyPath  string
 
 	LetsEncrypt LetsEncryptConfig
 }
@@ -302,6 +304,12 @@ func GetTLSConfig() TLSConfig {
 		),
 		KeyPath: util.AbsolutePathFromConfigPath(
 			viper.GetString("tls_key_path"),
+		),
+		GRPCCertPath: util.AbsolutePathFromConfigPath(
+			viper.GetString("grpc_tls_cert_path"),
+		),
+		GRPCKeyPath: util.AbsolutePathFromConfigPath(
+			viper.GetString("grpc_tls_key_path"),
 		),
 	}
 }

@@ -40,6 +40,11 @@ grpc_listen_addr: 127.0.0.1:50443
 # are doing.
 grpc_allow_insecure: false
 
+# Use separate a certificate for gRPC, this overwrites
+# the global certificate.
+grpc_tls_cert_path: ""
+grpc_tls_key_path: ""
+
 # The Noise section includes specific configuration for the
 # TS2021 Noise protocol
 noise:
