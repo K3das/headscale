@@ -26,6 +26,7 @@ jobs:
           - TestPreAuthKeyCommand
           - TestPreAuthKeyCommandWithoutExpiry
           - TestPreAuthKeyCommandReusableEphemeral
+          - TestPreAuthKeyCorrectUserLoggedInCommand
           - TestApiKeyCommand
           - TestNodeTagCommand
           - TestNodeAdvertiseTagNoACLCommand
@@ -43,7 +44,8 @@ jobs:
           - TestTaildrop
           - TestResolveMagicDNS
           - TestExpireNode
-          - TestNodeOnlineLastSeenStatus
+          - TestNodeOnlineStatus
+          - TestPingAllByIPManyUpDown
           - TestEnablingRoutes
           - TestHASubnetRouterFailover
           - TestEnableDisableAutoApprovedRoute

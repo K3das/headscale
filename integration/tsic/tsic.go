@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/netip"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -503,7 +504,7 @@ func (t *TailscaleInContainer) IPs() ([]netip.Addr, error) {
 }
 
 // Status returns the ipnstate.Status of the Tailscale instance.
-func (t *TailscaleInContainer) Status() (*ipnstate.Status, error) {
+func (t *TailscaleInContainer) Status(save ...bool) (*ipnstate.Status, error) {
 	command := []string{
 		"tailscale",
 		"status",
@@ -521,60 +522,70 @@ func (t *TailscaleInContainer) Status() (*ipnstate.Status, error) {
 		return nil, fmt.Errorf("failed to unmarshal tailscale status: %w", err)
 	}
 
+	err = os.WriteFile(fmt.Sprintf("/tmp/control/%s_status.json", t.hostname), []byte(result), 0o755)
+	if err != nil {
+		return nil, fmt.Errorf("status netmap to /tmp/control: %w", err)
+	}
+
 	return &status, err
 }
 
 // Netmap returns the current Netmap (netmap.NetworkMap) of the Tailscale instance.
 // Only works with Tailscale 1.56 and newer.
 // Panics if version is lower then minimum.
-// func (t *TailscaleInContainer) Netmap() (*netmap.NetworkMap, error) {
-// 	if !util.TailscaleVersionNewerOrEqual("1.56", t.version) {
-// 		panic(fmt.Sprintf("tsic.Netmap() called with unsupported version: %s", t.version))
-// 	}
+func (t *TailscaleInContainer) Netmap() (*netmap.NetworkMap, error) {
+	if !util.TailscaleVersionNewerOrEqual("1.56", t.version) {
+		panic(fmt.Sprintf("tsic.Netmap() called with unsupported version: %s", t.version))
+	}
 
-// 	command := []string{
-// 		"tailscale",
-// 		"debug",
-// 		"netmap",
-// 	}
+	command := []string{
+		"tailscale",
+		"debug",
+		"netmap",
+	}
 
-// 	result, stderr, err := t.Execute(command)
-// 	if err != nil {
-// 		fmt.Printf("stderr: %s\n", stderr)
-// 		return nil, fmt.Errorf("failed to execute tailscale debug netmap command: %w", err)
-// 	}
+	result, stderr, err := t.Execute(command)
+	if err != nil {
+		fmt.Printf("stderr: %s\n", stderr)
+		return nil, fmt.Errorf("failed to execute tailscale debug netmap command: %w", err)
+	}
 
-// 	var nm netmap.NetworkMap
-// 	err = json.Unmarshal([]byte(result), &nm)
-// 	if err != nil {
-// 		return nil, fmt.Errorf("failed to unmarshal tailscale netmap: %w", err)
-// 	}
+	var nm netmap.NetworkMap
+	err = json.Unmarshal([]byte(result), &nm)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal tailscale netmap: %w", err)
+	}
 
-// 	return &nm, err
-// }
+	err = os.WriteFile(fmt.Sprintf("/tmp/control/%s_netmap.json", t.hostname), []byte(result), 0o755)
+	if err != nil {
+		return nil, fmt.Errorf("saving netmap to /tmp/control: %w", err)
+	}
+
+	return &nm, err
+}
 
 // Netmap returns the current Netmap (netmap.NetworkMap) of the Tailscale instance.
 // This implementation is based on getting the netmap from `tailscale debug watch-ipn`
 // as there seem to be some weirdness omitting endpoint and DERP info if we use
 // Patch updates.
 // This implementation works on all supported versions.
-func (t *TailscaleInContainer) Netmap() (*netmap.NetworkMap, error) {
-	// watch-ipn will only give an update if something is happening,
-	// since we send keep alives, the worst case for this should be
-	// 1 minute, but set a slightly more conservative time.
-	ctx, _ := context.WithTimeout(context.Background(), 3*time.Minute)
+// func (t *TailscaleInContainer) Netmap() (*netmap.NetworkMap, error) {
+// 	// watch-ipn will only give an update if something is happening,
+// 	// since we send keep alives, the worst case for this should be
+// 	// 1 minute, but set a slightly more conservative time.
+// 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Minute)
 
-	notify, err := t.watchIPN(ctx)
-	if err != nil {
-		return nil, err
-	}
+// 	notify, err := t.watchIPN(ctx)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	if notify.NetMap == nil {
-		return nil, fmt.Errorf("no netmap present in ipn.Notify")
-	}
+// 	if notify.NetMap == nil {
+// 		return nil, fmt.Errorf("no netmap present in ipn.Notify")
+// 	}
 
-	return notify.NetMap, nil
-}
+// 	return notify.NetMap, nil
+// }
 
 // watchIPN watches `tailscale debug watch-ipn` for a ipn.Notify object until
 // it gets one that has a netmap.NetworkMap.
@@ -680,15 +691,18 @@ func (t *TailscaleInContainer) FQDN() (string, error) {
 	return status.Self.DNSName, nil
 }
 
-// PrettyPeers returns a formatted-ish table of peers in the client.
-func (t *TailscaleInContainer) PrettyPeers() (string, error) {
+// FailingPeersAsString returns a formatted-ish multi-line-string of peers in the client
+// and a bool indicating if the clients online count and peer count is equal.
+func (t *TailscaleInContainer) FailingPeersAsString() (string, bool, error) {
 	status, err := t.Status()
 	if err != nil {
-		return "", fmt.Errorf("failed to get FQDN: %w", err)
+		return "", false, fmt.Errorf("failed to get FQDN: %w", err)
 	}
 
-	str := fmt.Sprintf("Peers of %s\n", t.hostname)
-	str += "Hostname\tOnline\tLastSeen\n"
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "Peers of %s\n", t.hostname)
+	fmt.Fprint(&b, "Hostname\tOnline\tLastSeen\n")
 
 	peerCount := len(status.Peers())
 	onlineCount := 0
@@ -700,12 +714,12 @@ func (t *TailscaleInContainer) PrettyPeers() (string, error) {
 			onlineCount++
 		}
 
-		str += fmt.Sprintf("%s\t%t\t%s\n", peer.HostName, peer.Online, peer.LastSeen)
+		fmt.Fprintf(&b, "%s\t%t\t%s\n", peer.HostName, peer.Online, peer.LastSeen)
 	}
 
-	str += fmt.Sprintf("Peer Count: %d, Online Count: %d\n\n", peerCount, onlineCount)
+	fmt.Fprintf(&b, "Peer Count: %d, Online Count: %d\n\n", peerCount, onlineCount)
 
-	return str, nil
+	return b.String(), peerCount == onlineCount, nil
 }
 
 // WaitForNeedsLogin blocks until the Tailscale (tailscaled) instance has

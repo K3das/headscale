@@ -51,12 +51,10 @@ func initConfig() {
 
 	cfg, err := types.GetHeadscaleConfig()
 	if err != nil {
-		log.Fatal().Caller().Err(err).Msg("Failed to get headscale configuration")
+		log.Fatal().Err(err).Msg("Failed to read headscale configuration")
 	}
 
 	machineOutput := HasMachineOutputFlag()
-
-	zerolog.SetGlobalLevel(cfg.Log.Level)
 
 	// If the user has requested a "node" readable format,
 	// then disable login so the output remains valid.
@@ -78,7 +76,7 @@ func initConfig() {
 			res, err := latest.Check(githubTag, Version)
 			if err == nil && res.Outdated {
 				//nolint
-				fmt.Printf(
+				log.Warn().Msgf(
 					"An updated version of Headscale has been found (%s vs. your current %s). Check it out https://github.com/juanfont/headscale/releases\n",
 					res.Current,
 					Version,
