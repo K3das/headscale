@@ -97,8 +97,8 @@ func WithTLS() Option {
 		}
 
 		// TODO(kradalby): Move somewhere appropriate
-		hsic.env["HEADSCALE_TLS_CERT_PATH"] = tlsCertPath
-		hsic.env["HEADSCALE_TLS_KEY_PATH"] = tlsKeyPath
+		hsic.env["HEADSCALE_GRPC_TLS_CERT_PATH"] = tlsCertPath
+		hsic.env["HEADSCALE_GRPC_TLS_KEY_PATH"] = tlsKeyPath
 
 		hsic.tlsCert = cert
 		hsic.tlsKey = key
