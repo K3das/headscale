@@ -180,12 +180,12 @@ noise:
 	c.Assert(
 		tmp,
 		check.Matches,
-		".*Fatal config error: set either tls_letsencrypt_hostname or tls_cert_path/tls_key_path, not both.*",
+		".*Fatal config error: set either tls.letsencrypt_hostname or tls.cert_path/tls.key_path, not both.*",
 	)
 	c.Assert(
 		tmp,
 		check.Matches,
-		".*Fatal config error: the only supported values for tls_letsencrypt_challenge_type are.*",
+		".*Fatal config error: the only supported values for tls.letsencrypt_challenge_type are.*",
 	)
 	c.Assert(
 		tmp,
