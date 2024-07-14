@@ -180,6 +180,13 @@ type Tuning struct {
 	NodeMapSessionBufferedChanSize int
 }
 
+func RegisterDeprecatedAlias(old, new string) {
+	if viper.IsSet(old) {
+		log.Warn().Msgf("%s is deprecated and may be removed in future versions, please use %s instead.", old, new)
+		viper.Set(new, viper.GetString(old))
+	}
+}
+
 func LoadConfig(path string, isFile bool) error {
 	if isFile {
 		viper.SetConfigFile(path)
@@ -246,18 +253,6 @@ func LoadConfig(path string, isFile bool) error {
 
 	viper.SetDefault("prefixes.allocation", string(IPAllocationStrategySequential))
 
-	viper.RegisterAlias("grpc_listen_addr", "grpc.listen_addr")
-	viper.RegisterAlias("grpc_allow_insecure", "grpc.allow_insecure")
-
-	viper.RegisterAlias("acme_url", "tls.acme_url")
-	viper.RegisterAlias("acme_email", "tls.acme_email")
-	viper.RegisterAlias("tls_letsencrypt_hostname", "tls.letsencrypt_hostname")
-	viper.RegisterAlias("tls_letsencrypt_cache_dir", "tls.letsencrypt_cache_dir")
-	viper.RegisterAlias("tls_letsencrypt_challenge_type", "tls.letsencrypt_challenge_type")
-	viper.RegisterAlias("tls_letsencrypt_listen", "tls.letsencrypt_listen")
-	viper.RegisterAlias("tls_cert_path", "tls.cert_path")
-	viper.RegisterAlias("tls_key_path", "tls.key_path")
-
 	if IsCLIConfigured() {
 		return nil
 	}
@@ -267,6 +262,17 @@ func LoadConfig(path string, isFile bool) error {
 
 		return fmt.Errorf("fatal error reading config file: %w", err)
 	}
+
+	RegisterDeprecatedAlias("grpc_listen_addr", "grpc.listen_addr")
+	RegisterDeprecatedAlias("grpc_allow_insecure", "grpc.allow_insecure")
+	RegisterDeprecatedAlias("acme_url", "tls.acme_url")
+	RegisterDeprecatedAlias("acme_email", "tls.acme_email")
+	RegisterDeprecatedAlias("tls_letsencrypt_hostname", "tls.letsencrypt_hostname")
+	RegisterDeprecatedAlias("tls_letsencrypt_cache_dir", "tls.letsencrypt_cache_dir")
+	RegisterDeprecatedAlias("tls_letsencrypt_challenge_type", "tls.letsencrypt_challenge_type")
+	RegisterDeprecatedAlias("tls_letsencrypt_listen", "tls.letsencrypt_listen")
+	RegisterDeprecatedAlias("tls_cert_path", "tls.cert_path")
+	RegisterDeprecatedAlias("tls_key_path", "tls.key_path")
 
 	// Collect any validation errors and return them all at once
 	var errorText string

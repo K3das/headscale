@@ -60,9 +60,9 @@ func (*Suite) TestConfigFileLoading(c *check.C) {
 	c.Assert(viper.GetString("metrics_listen_addr"), check.Equals, "127.0.0.1:9090")
 	c.Assert(viper.GetString("database.type"), check.Equals, "sqlite")
 	c.Assert(viper.GetString("database.sqlite.path"), check.Equals, "/var/lib/headscale/db.sqlite")
-	c.Assert(viper.GetString("tls_letsencrypt_hostname"), check.Equals, "")
-	c.Assert(viper.GetString("tls_letsencrypt_listen"), check.Equals, ":http")
-	c.Assert(viper.GetString("tls_letsencrypt_challenge_type"), check.Equals, "HTTP-01")
+	c.Assert(viper.GetString("tls.letsencrypt_hostname"), check.Equals, "")
+	c.Assert(viper.GetString("tls.letsencrypt_listen"), check.Equals, ":http")
+	c.Assert(viper.GetString("tls.letsencrypt_challenge_type"), check.Equals, "HTTP-01")
 	c.Assert(viper.GetStringSlice("dns_config.nameservers")[0], check.Equals, "1.1.1.1")
 	c.Assert(
 		util.GetFileMode("unix_socket_permission"),
@@ -103,9 +103,9 @@ func (*Suite) TestConfigLoading(c *check.C) {
 	c.Assert(viper.GetString("metrics_listen_addr"), check.Equals, "127.0.0.1:9090")
 	c.Assert(viper.GetString("database.type"), check.Equals, "sqlite")
 	c.Assert(viper.GetString("database.sqlite.path"), check.Equals, "/var/lib/headscale/db.sqlite")
-	c.Assert(viper.GetString("tls_letsencrypt_hostname"), check.Equals, "")
-	c.Assert(viper.GetString("tls_letsencrypt_listen"), check.Equals, ":http")
-	c.Assert(viper.GetString("tls_letsencrypt_challenge_type"), check.Equals, "HTTP-01")
+	c.Assert(viper.GetString("tls.letsencrypt_hostname"), check.Equals, "")
+	c.Assert(viper.GetString("tls.letsencrypt_listen"), check.Equals, ":http")
+	c.Assert(viper.GetString("tls.letsencrypt_challenge_type"), check.Equals, "HTTP-01")
 	c.Assert(viper.GetStringSlice("dns_config.nameservers")[0], check.Equals, "1.1.1.1")
 	c.Assert(
 		util.GetFileMode("unix_socket_permission"),
@@ -192,6 +192,8 @@ noise:
 		check.Matches,
 		".*Fatal config error: server_url must start with https:// or http://.*",
 	)
+
+	viper.Reset()
 
 	// Check configuration validation errors (2)
 	configYaml = []byte(`---
